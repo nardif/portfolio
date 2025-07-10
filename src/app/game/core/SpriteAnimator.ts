@@ -16,7 +16,7 @@ export class SpriteAnimator {
     private currentState: AnimationState = "idle";
     private currentFrame = 0;
     private frameTimer = 0;
-    private frameInterval = 100;
+    private frameInterval = 50;
 
     constructor(
         imageSrc: string,

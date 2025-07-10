@@ -4,6 +4,7 @@ import { Platform } from "./Platform";
 import { checkCollision, resolveCollision } from "./Physics";
 import { UpdatableWithContext } from "./UpdatableWithContext";
 import { InputHandler } from "../utils/InputHandler";
+import { SpriteAnimator, AnimationState } from "./SpriteAnimator";
 
 export class Player implements GameObject, UpdatableWithContext {
     public width = 48;
@@ -14,20 +15,21 @@ export class Player implements GameObject, UpdatableWithContext {
     public gravity = 1;
     public onGround = false;
 
-    private sprite: HTMLImageElement;
-    private totalFrames = 4;
-    private currentFrame = 0;
-    private frameWidth = 256;
-    private frameHeight = 256;
-    private frameTimer = 0;
-    private frameInterval = 100; 
-
     private facing: 'left' | 'right' = 'right';
-    private animationRow = 0;
+    private animator: SpriteAnimator;
 
     constructor(public x: number, public y: number) {
-        this.sprite = new Image();
-        this.sprite.src = '/sprites/pikminYellow.png';
+        this.animator = new SpriteAnimator(
+            '/sprites/pikminYellow.png',
+            256,
+            256,
+            {
+                idle: { row: 1, frames: 1 },
+                walk: { row: 0, frames: 4 },
+                jump: { row: 2, frames: 4 },
+            },
+            100
+        );
     }
 
     update(dt: number, input: InputHandler, platforms: Platform[], canvas: HTMLCanvasElement) {
@@ -65,24 +67,12 @@ export class Player implements GameObject, UpdatableWithContext {
         }
         
         //Elegir animación
-        if (!this.onGround) {   //jump
-            this.animationRow = 2;
-        } else if (this.vx !== 0) { //walk
-            this.animationRow = 0
-        } else {    //standing
-            this.currentFrame = 0
-        }
+        let newState: AnimationState = 'idle';
+        if(!this.onGround) newState = 'jump';
+        else if(this.vx !==0) newState = 'walk';
 
-        //Animar solo si se mueve o salta
-        if (this.vx !== 0 || !this.onGround) {
-            this.frameTimer += dt;
-            if (this.frameTimer >= this.frameInterval) {
-                this.currentFrame = (this.currentFrame + 1) % this.totalFrames;
-                this.frameTimer = 0;
-            }
-        } else {
-            this.currentFrame = 0;
-        }
+        this.animator.setState(newState);
+        this.animator.update(dt);
     }
 
     respawnAt(x: number, y: number) {
@@ -92,39 +82,13 @@ export class Player implements GameObject, UpdatableWithContext {
     }
 
     draw(ctx: CanvasRenderingContext2D) {
-        if (!this.sprite.complete || this.sprite.naturalWidth === 0) {
-             //or throw error: implementar mas adelante
-              ctx.fillStyle = "blue";
-            ctx.fillRect(this.x, this.y, this.width, this.height);
-            return;
-        }
-
-        const sx = this.currentFrame * this.frameWidth;
-        const sy = this.animationRow * this.frameHeight;
-
-        ctx.save();
-
-        if (this.facing === 'left') {
-            ctx.translate(this.x + this.width/2, this.y + this.height/2);
-            ctx.scale(-1, 1);
-            ctx.translate(-this.width/2, -this.width/2);
-            ctx.drawImage(
-                this.sprite,
-                sx, sy,
-                this.frameWidth, this.frameHeight,
-                0, 0,
-                this.width, this.height
-            );
-        } else {
-            ctx.drawImage(
-                this.sprite,
-                sx, sy,
-                this.frameWidth, this.frameHeight,
-                this.x, this.y,
-                this.width, this.height
-            );
-        }
-
-        ctx.restore();
+        this.animator.draw(
+            ctx,
+            this.x,
+            this.y,
+            this.width,
+            this.height,
+            this.facing === 'left'
+        );
     }
 }
