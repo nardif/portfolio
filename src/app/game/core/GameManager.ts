@@ -10,6 +10,8 @@ export class GameManager {
   private player: Player;
   private platforms: Platform[];
   private lastTime = 0;
+  private worldHeight = 1200;
+  private scrollY = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -20,6 +22,9 @@ export class GameManager {
     this.platforms = [
       new Platform(100, 400, 200, 20),
       new Platform(250, 485, 200, 20),
+
+      new Platform(120, 700, 200, 20),
+      new Platform(300, 850, 200, 20),
     ];
 
     // Inicializar jugador sobre la primera plataforma
@@ -33,8 +38,15 @@ export class GameManager {
   update(dt: number) {
     this.player.update(dt, this.input, this.platforms, this.canvas);
 
+    //seguir al jugador dentro del mundo
+    const halfCanvas = this.canvas.height / 2;
+    const targetScroll = this.player.y + this.player.height / 2 - halfCanvas;
+
+    // Limitar el scroll para no salir del mundo
+    this.scrollY = Math.max(0, Math.min(targetScroll, this.worldHeight - this.canvas.height));
+
     // Verificar si el jugador se cae del canvas
-    if (this.player.y > this.canvas.height) {
+    if (this.player.y > this.worldHeight) {
       this.respawnPlayer();
     }
   }
@@ -42,8 +54,13 @@ export class GameManager {
   draw() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+    this.ctx.save();
+    this.ctx.translate(0, -this.scrollY);
+
     this.platforms.forEach(p => p.draw(this.ctx));
     this.player.draw(this.ctx);
+
+    this.ctx.restore();
   }
 
   loop = (timestamp: number = 0) => {
