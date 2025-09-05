@@ -1,22 +1,68 @@
-"use client";
-import { useEffect, useRef } from "react";
-import { GameManager } from "../core/GameManager";
+'use client';
+import { useEffect, useRef, useState } from 'react';
+import { GameManager } from '../core/GameManager';
 
-export default function Canvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const managerRef = useRef<GameManager | null>(null);
+type CanvasProps = {
+	onScreenChange?: (id: string | null) => void;
+};
 
-  useEffect(() => {
-    const canvas = canvasRef.current!;
-    const manager = new GameManager(canvas);
-    managerRef.current = manager;
+export default function Canvas({ onScreenChange }: CanvasProps) {
+	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const managerRef = useRef<GameManager | null>(null);
+	const [dimensions, setDimensions] = useState({
+		width: 800,
+		height: 600,
+	});
 
-    manager.start();
+	useEffect(() => {
+		const updateSize = () => {
+			setDimensions({
+				width: window.innerWidth,
+				height: window.innerHeight,
+			});
+		};
 
-    return () => {
-      manager.dispose();
-    };
-  }, []);
+		updateSize();
+		window.addEventListener('resize', updateSize);
 
-  return <canvas ref={canvasRef} width={800} height={600} />;
+		return () => window.removeEventListener('resize', updateSize);
+	}, []);
+
+	useEffect(() => {
+		const canvas = canvasRef.current;
+		if (!canvas) return;
+
+		const manager = new GameManager(canvas, onScreenChange);
+		managerRef.current = manager;
+		manager.start();
+
+		const onNavigate = (e: Event) => {
+			const detail = (e as CustomEvent<{ screenId: string }>).detail;
+			if (!detail?.screenId) return;
+			managerRef.current?.goToScreen(detail.screenId, { smooth: true });
+		};
+		window.addEventListener('navigate-screen', onNavigate as EventListener);
+
+		return () => {
+			window.removeEventListener('navigate-screen', onNavigate as EventListener);
+			manager.dispose();
+		};
+	}, [dimensions, onScreenChange]);
+
+	return (
+		<canvas
+			ref={canvasRef}
+			width={dimensions.width}
+			height={dimensions.height}
+			style={{
+				display: 'block',
+				width: '100vw',
+				height: '100vh',
+				background: 'transparent',
+				position: 'absolute',
+				inset: 0,
+				zIndex: 10,
+			}}
+		/>
+	);
 }

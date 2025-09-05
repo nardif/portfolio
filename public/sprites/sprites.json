@@ -1,19 +1,19 @@
 {
-  "pikmin": {
-    "frameWidth": 256,
-    "frameHeight": 341,
-    "sheet": "/sprites/pikminYellow.png",
-    "columns": 4,
-    "animations": {
-      "walk": {
-        "frames": [0, 1, 2, 3],
-        "fps": 10
-      },
-      
-      "jump": {
-        "frames": [8, 9, 10, 11],
-        "fps": 8
-      }
-    }
-  }
+	"pikmin": {
+		"frameWidth": 256,
+		"frameHeight": 341,
+		"sheet": "/sprites/pikminYellow.png",
+		"columns": 4,
+		"animations": {
+			"walk": {
+				"frames": [0, 1, 2, 3],
+				"fps": 10
+			},
+
+			"jump": {
+				"frames": [8, 9, 10, 11],
+				"fps": 8
+			}
+		}
+	}
 }
