@@ -48,9 +48,6 @@ export default function BackgroundShaderWater() {
 		}
 
 		// WebGL: setup
-		const isWebGL2 = (gl as WebGL2RenderingContext).DRAW_FRAMEBUFFER !== undefined;
-		console.log('Usando', isWebGL2 ? 'WebGL2' : 'WebGL1');
-
 		const dpr = Math.min(2, window.devicePixelRatio || 1);
 		const resize = () => {
 			const w = window.innerWidth;

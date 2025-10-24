@@ -1,10 +1,11 @@
-// core/GameManager.ts
+// /app/game/core/GameManager.ts
 import { Player } from './Player';
 import { Platform } from './Platform';
 import { InputHandler } from '../utils/InputHandler';
 import { WorldScreenManager } from './WorldScreenManager';
 import { placeCentered } from '../utils/placeCentered';
 import { CircularPlatform } from './CircularPlatform';
+import { InfoBubble } from './InfoBubble';
 
 export class GameManager {
 	private canvas: HTMLCanvasElement;
@@ -19,6 +20,7 @@ export class GameManager {
 	private circularPlatforms: CircularPlatform[];
 	private targetScrollY: number | null = null;
 	private pendingSpawnScreenId: string | null = null; // al hacer click en nav
+	private bubbles: InfoBubble[] = [];
 
 	constructor(
 		canvas: HTMLCanvasElement,
@@ -74,7 +76,24 @@ export class GameManager {
 				220,
 				20
 			),
-
+			new Platform(
+				placeCentered(this.canvas, 275, screenHeight + 180, 200),
+				screenHeight + 380,
+				80,
+				20
+			),
+			new Platform(
+				placeCentered(this.canvas, 400, screenHeight + 180, 200),
+				screenHeight + 290,
+				100,
+				20
+			),
+			new Platform(
+				placeCentered(this.canvas, 330, screenHeight + 180, 200),
+				screenHeight + 700,
+				175,
+				20
+			),
 			new Platform(
 				placeCentered(this.canvas, -120, screenHeight * 2 + 80, 200),
 				screenHeight * 2 + 320,
@@ -89,19 +108,31 @@ export class GameManager {
 			),
 		];
 
-		// Spawn del jugador: sobre el planeta (pantalla 1)
-		const planet = this.circularPlatforms[0];
-		this.player = new Player(
-			planet.x - 24, // centrado horizontalmente (48 = player.width)
-			planet.y - planet.radius - 48 - 4 // encima del planeta
-		);
+		// EJEMPLO: Solo burbujas en plataformas específicas y con texto personalizado
+		// Puedes editar este array para elegir en qué plataformas y qué texto mostrar
+		const bubbleConfigs = [
+			{ platformIndex: 1, text: 'Frontend  ' },
+			{ platformIndex: 3, text: 'Backend  ' },
+			{ platformIndex: 5, text: 'Databases  ' },
+		];
+		bubbleConfigs.forEach((cfg) => {
+			const plat = this.platforms[cfg.platformIndex];
+			if (plat) {
+				this.bubbles.push(new InfoBubble(plat.x + plat.width / 2, plat.y - 40, 38, cfg.text));
+			}
+		});
 
+		// Spawn inicial en el planeta
+		const planet = this.circularPlatforms[0];
+		this.player = new Player(planet.x - 24, planet.y - planet.radius - 48 - 4);
+
+		// Sincronizar estado de pantalla al montar
 		this.screenManager.update(this.player.y);
 		const currentScreenId = this.screenManager.getCurrentScreen()?.id ?? null;
 		if (this.onScreenChange) this.onScreenChange(currentScreenId);
 	}
 
-	// Navegar a una pantalla por id
+	// Navegar a una pantalla por id (para la navbar)
 	public goToScreen(screenId: string, opts: { smooth?: boolean } = { smooth: true }) {
 		const screen = this.screenManager.getScreens().find((s) => s.id === screenId);
 		if (!screen) return;
@@ -110,11 +141,10 @@ export class GameManager {
 
 		if (opts.smooth) {
 			this.targetScrollY = desired;
-			this.pendingSpawnScreenId = screen.id; // al llegar, hacemos respawn
+			this.pendingSpawnScreenId = screen.id;
 		} else {
 			this.scrollY = desired;
 			this.targetScrollY = null;
-			// respawnear en salto instantáneo:
 			this.snapSpawnToScreen(screen.id);
 		}
 	}
@@ -122,7 +152,13 @@ export class GameManager {
 	update(dt: number) {
 		// 1) físicas/colisiones
 		this.circularPlatforms.forEach((p) => p.update(dt, this.player));
-		this.player.update(dt, this.input, this.platforms, this.canvas);
+		this.player.update(dt, this.input, this.platforms);
+		// Update & highlight platforms
+		for (const p of this.platforms) {
+			if (typeof p.update === 'function') p.update(dt);
+			if (typeof p.updateHighlight === 'function') p.updateHighlight(dt, this.player);
+		}
+		this.bubbles.forEach((b) => b.update(dt, this.player));
 
 		// 2) cámara
 		if (this.targetScrollY == null) {
@@ -148,30 +184,26 @@ export class GameManager {
 			}
 		}
 
-		// 3) límites del mundo + screen manager
-		if (this.player.y > this.worldHeight) {
-			this.respawnPlayer();
-		}
+		// 3) límites del mundo
+		if (this.player.y > this.worldHeight) this.respawnPlayer();
 
-		// 4) ACTUALIZAR el screen manager con la Y del jugador
+		// 4) screen manager
 		this.screenManager.update(this.player.y);
 
-		// 5) recién ahora notificamos al UI
+		// 5) notificar UI
 		const currentScreenId = this.screenManager.getCurrentScreen()?.id ?? null;
 		if (this.onScreenChange) this.onScreenChange(currentScreenId);
 	}
 
 	draw() {
 		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
 		this.ctx.save();
-
-		const screen = this.screenManager.getCurrentScreen();
-
 		this.ctx.translate(0, -this.scrollY);
 
+		// Orden de pintado: plataformas / planeta / burbujas / player
 		this.platforms.forEach((p) => p.draw(this.ctx));
-		this.circularPlatforms.forEach((p) => p.draw(this.ctx, true));
+		this.circularPlatforms.forEach((p) => p.draw(this.ctx));
+		this.bubbles.forEach((b) => b.draw(this.ctx));
 		this.player.draw(this.ctx);
 
 		this.ctx.restore();
@@ -201,9 +233,12 @@ export class GameManager {
 			planet.x - this.player.width / 2,
 			planet.y - planet.radius - this.player.height
 		);
+		// Al respawnear desde el vacío restaurar plataformas destruidas
+		for (const p of this.platforms) {
+			if (typeof p.resetToSpawn === 'function') p.resetToSpawn();
+		}
 	}
 
-	// Respawn según pantalla
 	private snapSpawnToScreen(screenId: string) {
 		const screen = this.screenManager.getScreens().find((s) => s.id === screenId);
 		if (!screen) return;
@@ -213,15 +248,12 @@ export class GameManager {
 			const x = planet.x - this.player.width / 2;
 			const y = planet.y - planet.radius - this.player.height;
 			this.player.respawnAt(x, y);
-			this.player.startSpawnFx('fade-pop', 420); // opciones: 'fade' | 'pop' | 'fade-pop'
+			this.player.startSpawnFx('fade-pop', 420);
 			return;
 		}
 
-		// Para pantallas con plataformas rectas:
-		// Buscamos una plataforma cuyo Y esté dentro del rango de la pantalla
 		const yMin = screen.yStart;
 		const yMax = screen.yStart + screen.height;
-
 		const plat = this.platforms.find((p) => p.y >= yMin && p.y + p.height <= yMax);
 		if (plat) {
 			const x = plat.x + plat.width / 2 - this.player.width / 2;

@@ -79,7 +79,7 @@ export default function BackgroundShaderStars({
       }
 
       // ---------- Paleta ----------
-      vec3 palette(float t) { // azules
+      vec3 palette(float t) {
         vec3 c1 = vec3(0.02, 0.03, 0.10);
         vec3 c2 = vec3(0.08, 0.28, 0.55);
         vec3 c3 = vec3(0.65, 0.85, 1.00);

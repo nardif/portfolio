@@ -52,7 +52,7 @@ export class CircularPlatform implements GameObject {
 				player.setOnGround(true);
 			}
 
-			// 🔸 SOLO girar si el jugador se mueve en X (a/d)
+			// SOLO girar si el jugador se mueve en X (a/d)
 			if (Math.abs(player.vx) > 0.01) {
 				const direction = player.getFacing(); // "left" | "right"
 				const signed = direction === 'left' ? 1 : -1; // opuesto a la mirada
@@ -68,7 +68,7 @@ export class CircularPlatform implements GameObject {
 		}
 	}
 
-	draw(ctx: CanvasRenderingContext2D, debug: boolean = false) {
+	draw(ctx: CanvasRenderingContext2D) {
 		ctx.save();
 		ctx.translate(this.x, this.y);
 		ctx.rotate(this.angle);

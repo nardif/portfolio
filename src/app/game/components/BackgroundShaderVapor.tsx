@@ -8,16 +8,9 @@ type Props = {
 	speed?: number;
 	/** Contraste/curva del color (0.6 – 1.8) */
 	contrast?: number;
-	/** Paleta: 0=azules, 1=violetas, 2=cian/magenta */
-	palette?: 0 | 1 | 2;
 };
 
-export default function BackgroundShaderVapor({
-	warp = 1.05,
-	speed = 0.8,
-	contrast = 1.0,
-	palette = 0,
-}: Props) {
+export default function BackgroundShaderVapor({ warp = 1.05, speed = 0.8, contrast = 1.0 }: Props) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 
 	useEffect(() => {
@@ -58,7 +51,6 @@ export default function BackgroundShaderVapor({
       uniform float uWarp;
       uniform float uSpeed;
       uniform float uContrast;
-      uniform int   uPalette;
 
       // Hash/Noise utils
       float hash(vec2 p) {
@@ -89,25 +81,12 @@ export default function BackgroundShaderVapor({
         return v;
       }
 
-      // Paletas suaves
-      vec3 paletteA(float t) { // azules
+      // Paleta
+      vec3 palette(float t) {
         vec3 c1 = vec3(0.03, 0.06, 0.20);
         vec3 c2 = vec3(0.10, 0.35, 0.60);
         vec3 c3 = vec3(0.65, 0.85, 1.00);
         return mix(c1, c2, smoothstep(0.2, 0.8, t)) + 0.12 * vec3(smoothstep(0.7,1.0,t));
-      }
-      vec3 paletteB(float t) { // violetas
-        vec3 c1 = vec3(0.06, 0.03, 0.15);
-        vec3 c2 = vec3(0.40, 0.20, 0.65);
-        vec3 c3 = vec3(0.95, 0.75, 1.00);
-        return mix(c1, c2, smoothstep(0.15, 0.85, t)) + 0.10 * vec3(smoothstep(0.6,1.0,t));
-      }
-      vec3 paletteC(float t) { // cian/magenta
-        vec3 c1 = vec3(0.03, 0.08, 0.12);
-        vec3 c2 = vec3(0.20, 0.70, 0.85);
-        vec3 c3 = vec3(0.95, 0.30, 0.75);
-        vec3 base = mix(c1, c2, smoothstep(0.25,0.85,t));
-        return mix(base, c3, pow(max(t-0.6,0.0), 1.5));
       }
 
       void main() {
@@ -137,9 +116,7 @@ export default function BackgroundShaderVapor({
         n = pow(clamp(n, 0.0, 1.0), uContrast);
 
         vec3 col;
-        if (uPalette == 0)      col = paletteA(n);
-        else if (uPalette == 1) col = paletteB(n);
-        else                    col = paletteC(n);
+				col = palette(n);
 
         // Bloom suave en zonas altas
         float glow = smoothstep(0.8, 1.0, n);
@@ -176,7 +153,6 @@ export default function BackgroundShaderVapor({
 		const uWarp = gl.getUniformLocation(prog, 'uWarp');
 		const uSpeed = gl.getUniformLocation(prog, 'uSpeed');
 		const uContrast = gl.getUniformLocation(prog, 'uContrast');
-		const uPalette = gl.getUniformLocation(prog, 'uPalette');
 
 		const quad = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, quad);
@@ -198,7 +174,6 @@ export default function BackgroundShaderVapor({
 			gl.uniform1f(uWarp, warp);
 			gl.uniform1f(uSpeed, speed);
 			gl.uniform1f(uContrast, contrast);
-			gl.uniform1i(uPalette, palette);
 
 			gl.drawArrays(gl.TRIANGLES, 0, 6);
 			raf = requestAnimationFrame(loop);
@@ -209,7 +184,7 @@ export default function BackgroundShaderVapor({
 			cancelAnimationFrame(raf);
 			window.removeEventListener('resize', resize);
 		};
-	}, [warp, speed, contrast, palette]);
+	}, [warp, speed, contrast]);
 
 	return (
 		<canvas

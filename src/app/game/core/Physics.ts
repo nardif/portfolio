@@ -3,6 +3,8 @@ import { Player } from './Player';
 import { Platform } from './Platform';
 
 export function checkCollision(player: Player, platform: Platform): boolean {
+	// Skip inactive platforms (falling removed ones) if method exists
+	if (typeof platform.isCollidable === 'function' && !platform.isCollidable()) return false;
 	return (
 		player.x < platform.x + platform.width &&
 		player.x + player.width > platform.x &&
@@ -44,8 +46,12 @@ export function resolveCollision(player: Player, platform: Platform) {
 			} else {
 				// Top Collision
 				player.y = platform.y - ph;
+				// Only count landing if player was not grounded previously and is moving downward
+				const landedNow = !player.wasOnGround && player.vy >= 0;
 				player.vy = 0;
 				player.onGround = true;
+				// register landing for cracking logic exactly once per touchdown
+				if (landedNow && typeof platform.registerLanding === 'function') platform.registerLanding();
 			}
 		}
 	}

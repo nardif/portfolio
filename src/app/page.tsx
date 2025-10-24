@@ -35,7 +35,7 @@ export default function GamePage() {
 				</div>
 			)}
 			{currentScreen === 'screen-2' && (
-				<BackgroundShaderVapor warp={1.08} speed={0.75} contrast={1.05} palette={0} />
+				<BackgroundShaderVapor warp={1.08} speed={0.75} contrast={1.05} />
 			)}
 			{currentScreen === 'screen-3' && <BackgroundShaderWater />}
 			<Canvas onScreenChange={setCurrentScreen} />

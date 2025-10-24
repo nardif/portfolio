@@ -8,12 +8,13 @@ import { SpriteAnimator, AnimationState } from './SpriteAnimator';
 
 export class Player implements GameObject, UpdatableWithContext {
 	public width = 48;
-	public height = 48;
+	public height = 60;
 	public vx = 0;
 	public vy = 0;
 	public speed = 3;
 	public gravity = 1;
 	public onGround = false;
+	public wasOnGround = false; // track previous frame ground state
 
 	private facing: 'left' | 'right' = 'right';
 	private animator: SpriteAnimator;
@@ -30,8 +31,8 @@ export class Player implements GameObject, UpdatableWithContext {
 	) {
 		this.animator = new SpriteAnimator(
 			'/sprites/pikminYellow.png',
-			256,
-			256,
+			208,
+			281,
 			{
 				idle: { row: 1, frames: 1 },
 				walk: { row: 0, frames: 4 },
@@ -41,7 +42,9 @@ export class Player implements GameObject, UpdatableWithContext {
 		);
 	}
 
-	update(dt: number, input: InputHandler, platforms: Platform[], canvas: HTMLCanvasElement) {
+	update(dt: number, input: InputHandler, platforms: Platform[]) {
+		// store previous ground state before processing this frame
+		this.wasOnGround = this.onGround;
 		this.vx = 0;
 
 		// Dirección y movimiento
@@ -65,7 +68,7 @@ export class Player implements GameObject, UpdatableWithContext {
 		this.x += this.vx;
 		this.y += this.vy;
 
-		// Resetear estado de suelo
+		// Resetear estado de suelo (se recalculará en colisiones)
 		this.onGround = false;
 
 		// Colisiones con plataformas
