@@ -51,7 +51,8 @@ export default function BubbleLabel({ x, y, text, fontFamily }: Props) {
 				<span
 					className="z-20 text-white/95 text-center leading-snug whitespace-pre-wrap select-none"
 					style={{
-						fontFamily: fontFamily || 'inherit',
+						fontFamily: 'Arial',
+						fontWeight: 'bold',
 						fontSize: 22,
 						maxWidth: 110,
 						maxHeight: 110,
@@ -73,7 +74,7 @@ export default function BubbleLabel({ x, y, text, fontFamily }: Props) {
 						'radial-gradient(60% 60% at 50% 40%, rgba(90,160,255,0.35), rgba(40,100,180,0.15), transparent 70%)',
 				}}
 			/>
-			<style jsx>{`
+			<style>{`
 				@keyframes bubbleBreath {
 					0% {
 						transform: scale(1);

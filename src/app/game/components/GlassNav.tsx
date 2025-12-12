@@ -4,10 +4,11 @@ import { useState } from 'react';
 type NavItem = { label: string; screenId: string };
 
 const NAV: NavItem[] = [
-	{ label: 'Home', screenId: 'screen-1' },
-	{ label: 'About', screenId: 'screen-2' },
-	{ label: 'Projects', screenId: 'screen-3' },
-	{ label: 'Contact', screenId: 'screen-4' },
+	{ label: 'Home', screenId: 'screen-1-intro' },
+	{ label: 'About', screenId: 'screen-2-about-me-1' },
+	{ label: 'Skills', screenId: 'screen-6-skills-1' },
+	{ label: 'Projects', screenId: 'screen-8-projects' },
+	{ label: 'Contact', screenId: 'screen-9-contact' },
 ];
 
 export default function GlassNav() {

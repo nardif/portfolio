@@ -3,6 +3,7 @@ export interface WorldScreen {
 	yStart: number;
 	height: number;
 	onEnter?: () => void;
+	onExit?: () => void;
 }
 
 export class WorldScreenManager {
@@ -15,8 +16,11 @@ export class WorldScreenManager {
 
 	update(playerY: number) {
 		const screen = this.screens.find((s) => playerY >= s.yStart && playerY < s.yStart + s.height);
+		const prevScreen = this.screens.find((s) => s.id === this.currentScreenId);
 
 		if (screen && screen.id !== this.currentScreenId) {
+			// Ejecutar onExit de la pantalla anterior
+			if (prevScreen && prevScreen.onExit) prevScreen.onExit();
 			this.currentScreenId = screen.id;
 			if (screen.onEnter) screen.onEnter(); // activa evento al entrar
 		}

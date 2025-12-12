@@ -12,6 +12,10 @@ export class GameManager {
 	private ctx: CanvasRenderingContext2D;
 	private input: InputHandler;
 	private player: Player;
+
+	public getPlayer(): Player {
+		return this.player;
+	}
 	private platforms: Platform[];
 	private lastTime = 0;
 	private worldHeight = 1200;
@@ -31,79 +35,123 @@ export class GameManager {
 		this.input = new InputHandler();
 
 		const screenHeight = this.canvas.height;
-		this.worldHeight = screenHeight * 3; // ← 3 pantallas verticales
+		this.worldHeight = screenHeight * 10; // ← pantallas verticales
 
 		//Inicializar pantallas
 		this.screenManager = new WorldScreenManager([
 			{
-				id: 'screen-1',
+				id: 'screen-1-intro',
 				yStart: 0,
 				height: screenHeight,
+			},
+			{
+				id: 'screen-2-about-me-1',
+				yStart: screenHeight * 2,
+				height: screenHeight,
+			},
+			{
+				id: 'screen-3-about-me-2',
+				yStart: screenHeight * 3,
+				height: screenHeight,
 				onEnter: () => {
-					//cambiar settings, animacion, etc
+					this.player.gravity = (14 / 225) * screenHeight;
+					this.player.usePrecisePhysics = true;
+				},
+				onExit: () => {
+					this.player.gravity = 1;
+					this.player.usePrecisePhysics = false;
+					this.player.vy = 2;
 				},
 			},
 			{
-				id: 'screen-2',
-				yStart: screenHeight,
+				id: 'screen-4-about-me-3',
+				yStart: screenHeight * 4,
 				height: screenHeight,
-				onEnter: () => {},
+				onEnter: () => {
+					this.player.gravity = (14 / 225) * screenHeight;
+					this.player.usePrecisePhysics = true;
+				},
+				onExit: () => {
+					this.player.gravity = 1;
+					this.player.usePrecisePhysics = false;
+					this.player.vy = Math.max(this.player.vy, 2);
+				},
 			},
 			{
-				id: 'screen-3',
-				yStart: screenHeight * 2,
+				id: 'screen-5-about-me-4',
+				yStart: screenHeight * 5,
 				height: screenHeight,
-				onEnter: () => {},
+				onExit: () => {
+					this.player.gravity = 1;
+					this.player.usePrecisePhysics = false;
+					this.player.vy = Math.max(this.player.vy, 2);
+				},
+			},
+			{
+				id: 'screen-6-skills-1',
+				yStart: screenHeight * 6,
+				height: screenHeight,
+			},
+			{
+				id: 'screen-7-skills-2',
+				yStart: screenHeight * 7,
+				height: screenHeight,
+			},
+			{
+				id: 'screen-8-projects',
+				yStart: screenHeight * 8,
+				height: screenHeight,
+			},
+			{
+				id: 'screen-9-contact',
+				yStart: screenHeight * 9,
+				height: screenHeight,
 			},
 		]);
 
 		// Inicializar plataformas
-		// Pantalla 1
 		this.circularPlatforms = [
 			new CircularPlatform(this.canvas.width / 2, screenHeight / 2 + 350, 300),
 		];
 
 		this.platforms = [
+			// 🟡 Screen 6 - skills-1
 			new Platform(
-				placeCentered(this.canvas, -300, screenHeight + 100, 200),
-				screenHeight + 450,
+				placeCentered(this.canvas, -300, screenHeight * 6 + 100, 200),
+				screenHeight * 6 + 420,
 				250,
 				20
 			),
 			new Platform(
-				placeCentered(this.canvas, 0, screenHeight + 180, 200),
-				screenHeight + 490,
+				placeCentered(this.canvas, 0, screenHeight * 6 + 180, 200),
+				screenHeight * 6 + 480,
 				220,
 				20
 			),
 			new Platform(
-				placeCentered(this.canvas, 275, screenHeight + 180, 200),
-				screenHeight + 380,
+				placeCentered(this.canvas, 275, screenHeight * 6 + 180, 200),
+				screenHeight * 6 + 380,
 				80,
 				20
 			),
 			new Platform(
-				placeCentered(this.canvas, 400, screenHeight + 180, 200),
-				screenHeight + 290,
+				placeCentered(this.canvas, 400, screenHeight * 6 + 180, 200),
+				screenHeight * 6 + 290,
 				100,
 				20
 			),
+
+			// 🟢 Screen 7 - skills-2
 			new Platform(
-				placeCentered(this.canvas, 330, screenHeight + 180, 200),
-				screenHeight + 700,
-				175,
+				placeCentered(this.canvas, -150, screenHeight * 7 + 80, 200),
+				screenHeight * 7 + 320,
+				280,
 				20
 			),
 			new Platform(
-				placeCentered(this.canvas, -120, screenHeight * 2 + 80, 200),
-				screenHeight * 2 + 320,
-				300,
-				20
-			),
-			new Platform(
-				placeCentered(this.canvas, 150, screenHeight * 2 + 230, 200),
-				screenHeight * 2 + 480,
-				180,
+				placeCentered(this.canvas, 200, screenHeight * 7 + 200, 200),
+				screenHeight * 7 + 400,
+				200,
 				20
 			),
 		];
@@ -111,9 +159,9 @@ export class GameManager {
 		// EJEMPLO: Solo burbujas en plataformas específicas y con texto personalizado
 		// Puedes editar este array para elegir en qué plataformas y qué texto mostrar
 		const bubbleConfigs = [
-			{ platformIndex: 1, text: 'Frontend  ' },
-			{ platformIndex: 3, text: 'Backend  ' },
-			{ platformIndex: 5, text: 'Databases  ' },
+			{ platformIndex: 1, text: 'Frontend  ' }, // plataforma central de screen 6
+			{ platformIndex: 3, text: 'Backend  ' }, // plataforma lateral derecha
+			{ platformIndex: 4, text: 'Databases  ' }, // primera de screen 7
 		];
 		bubbleConfigs.forEach((cfg) => {
 			const plat = this.platforms[cfg.platformIndex];
@@ -227,6 +275,15 @@ export class GameManager {
 		this.input.dispose();
 	}
 
+	private getCustomSpawn(screenId: string): { x: number; y: number } | null {
+		if (screenId === 'screen-2-about-me-1') {
+			const centerX = this.canvas.width / 2;
+			const y = this.canvas.height * 2 + 120; // pantalla 2, poco por debajo del inicio
+			return { x: centerX - this.player.width / 2, y };
+		}
+		return null;
+	}
+
 	private respawnPlayer() {
 		const planet = this.circularPlatforms[0];
 		this.player.respawnAt(
@@ -243,7 +300,7 @@ export class GameManager {
 		const screen = this.screenManager.getScreens().find((s) => s.id === screenId);
 		if (!screen) return;
 
-		if (screenId === 'screen-1') {
+		if (screenId === 'screen-1-intro') {
 			const planet = this.circularPlatforms[0];
 			const x = planet.x - this.player.width / 2;
 			const y = planet.y - planet.radius - this.player.height;
@@ -254,12 +311,24 @@ export class GameManager {
 
 		const yMin = screen.yStart;
 		const yMax = screen.yStart + screen.height;
-		const plat = this.platforms.find((p) => p.y >= yMin && p.y + p.height <= yMax);
+		const margin = 100;
+		const plat = this.platforms.find(
+			(p) => p.y + p.height / 2 >= yMin - margin && p.y <= yMax + margin
+		);
+
 		if (plat) {
 			const x = plat.x + plat.width / 2 - this.player.width / 2;
 			const y = plat.y - this.player.height;
 			this.player.respawnAt(x, y);
-			this.player.startSpawnFx('fade-pop', 420); // opciones: 'fade' | 'pop' | 'fade-pop'
+			this.player.startSpawnFx('fade-pop', 420);
+			return;
+		}
+
+		// 🆕 Si no hay plataformas, usar custom spawn solo para screen-2-about-me-1
+		const custom = this.getCustomSpawn(screen.id);
+		if (custom) {
+			this.player.respawnAt(custom.x, custom.y);
+			this.player.startSpawnFx('fade-pop', 420);
 		}
 	}
 }

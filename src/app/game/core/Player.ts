@@ -12,9 +12,10 @@ export class Player implements GameObject, UpdatableWithContext {
 	public vx = 0;
 	public vy = 0;
 	public speed = 3;
-	public gravity = 1;
+	public gravity = 0.8;
 	public onGround = false;
 	public wasOnGround = false; // track previous frame ground state
+	public usePrecisePhysics = false;
 
 	private facing: 'left' | 'right' = 'right';
 	private animator: SpriteAnimator;
@@ -43,7 +44,6 @@ export class Player implements GameObject, UpdatableWithContext {
 	}
 
 	update(dt: number, input: InputHandler, platforms: Platform[]) {
-		// store previous ground state before processing this frame
 		this.wasOnGround = this.onGround;
 		this.vx = 0;
 
@@ -63,14 +63,44 @@ export class Player implements GameObject, UpdatableWithContext {
 			this.onGround = false;
 		}
 
+		// Guardamos posición anterior para anti-tunneling
+		const prevY = this.y;
+
 		// Gravedad
-		this.vy += this.gravity;
-		this.x += this.vx;
-		this.y += this.vy;
+		if (this.usePrecisePhysics) {
+			const dtSec = dt / 1000;
+			this.vy += this.gravity * dtSec;
+			this.x += this.vx;
+			this.y += this.vy * dtSec;
+		} else {
+			this.vy += this.gravity; // frame-based
+			this.x += this.vx;
+			this.y += this.vy;
+		}
 
 		// Resetear estado de suelo (se recalculará en colisiones)
 		this.onGround = false;
 
+		//   ANTI-TUNNELING VERTICAL FIX
+		for (const p of platforms) {
+			// ¿El jugador cruzó la superficie de la plataforma entre prevY y y?
+			const crossedDown =
+				prevY + this.height <= p.y && // Antes estaba arriba
+				this.y + this.height >= p.y && // Ahora está abajo
+				this.vy > 0 && // Debe ir cayendo
+				this.x + this.width > p.x && // Solapamiento X
+				this.x < p.x + p.width;
+
+			if (crossedDown && typeof p.isCollidable === 'function' && p.isCollidable()) {
+				this.y = p.y - this.height;
+				this.vy = 0;
+				this.onGround = true;
+
+				if (!this.wasOnGround && typeof p.registerLanding === 'function') {
+					p.registerLanding();
+				}
+			}
+		}
 		// Colisiones con plataformas
 		for (const p of platforms) {
 			if (checkCollision(this, p)) {
@@ -95,7 +125,7 @@ export class Player implements GameObject, UpdatableWithContext {
 		this.vy = 0;
 	}
 
-	// 🆕 Disparar animación de respawn
+	// Disparar animación de respawn
 	public startSpawnFx(type: 'fade' | 'pop' | 'fade-pop' = 'fade-pop', duration = 400) {
 		this.spawnFx.active = true;
 		this.spawnFx.t = 0;
@@ -103,7 +133,7 @@ export class Player implements GameObject, UpdatableWithContext {
 		this.spawnFx.type = type;
 	}
 
-	// 🆕 Avance temporal del FX
+	// Avance temporal del FX
 	private updateSpawnFx(dt: number) {
 		if (!this.spawnFx.active) return;
 		this.spawnFx.t += dt;
@@ -111,7 +141,7 @@ export class Player implements GameObject, UpdatableWithContext {
 	}
 
 	draw(ctx: CanvasRenderingContext2D) {
-		// 🆕 Aplicar fade/scale si el FX está activo
+		// Aplicar fade/scale si el FX está activo
 		const fx = this.spawnFx;
 		let scale = 1;
 		let alpha = 1;

@@ -922,4 +922,8 @@ export class Platform implements GameObject {
 		this.crackJitter = null;
 		this.crackLines = null;
 	}
+
+	public getState(): string {
+		return this['state'];
+	}
 }

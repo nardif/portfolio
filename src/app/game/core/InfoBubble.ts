@@ -133,7 +133,7 @@ export class InfoBubble {
 		// Si está triggered, agrandar según cantidad de texto
 		if (this.state === 'triggered') {
 			// Medir cantidad de líneas y longitud máxima
-			const ctxFont = `bold 22px 'Quivert', Arial, sans-serif`;
+			const ctxFont = `bold 22px 'Arial Bold', Arial, sans-serif`;
 			ctx.save();
 			ctx.font = ctxFont;
 			// Wrap simple: dividir por espacios y saltos de línea
@@ -197,7 +197,7 @@ export class InfoBubble {
 			ctx.beginPath();
 			ctx.arc(this.x, this.y, R - 4, 0, Math.PI * 2);
 			ctx.clip();
-			ctx.font = `bold 22px 'Quivert', Arial, sans-serif`;
+			ctx.font = `bold 22px 'Arial Bold', Arial, sans-serif`;
 			ctx.fillStyle = '#fff';
 			ctx.textAlign = 'center';
 			ctx.textBaseline = 'middle';
