@@ -23,15 +23,50 @@ export function getGridLineYs(screenH: number, count: number = 13) {
 	}
 	return lines;
 }
-
 export default function AnimatedLightWaveText({
 	spriteY,
 	text,
 	duration = 4000,
 	delay = 0,
-}: Props) {
+}: Props): React.ReactElement {
+	// --- SVG wave animation phase ---
 	const [time, setTime] = useState(0);
 	const raf = useRef<number | null>(null);
+
+	const wavePhaseStart = 800;
+	const wavePhaseDuration = 900;
+	const revealPhaseStart = wavePhaseStart + wavePhaseDuration; // 1700ms
+	const waveAnimProgress = Math.max(0, Math.min(1, (time - wavePhaseStart) / wavePhaseDuration));
+
+	// Declarar primero para poder usarlas en la lógica de la línea
+	const screenW = window.innerWidth;
+	const startX = 0;
+	const endX = screenW;
+
+	// SVG params
+	const lineY = spriteY;
+	const svgW = endX - startX;
+	const svgH = 50;
+	const waveCenter = svgW / 2;
+	const waveWidth = Math.max(180, text.length * 22);
+	const waveAmp = 18 * waveAnimProgress;
+	const waveFreq = 5;
+
+	function getWavePath(amp: number, freq: number) {
+		const points = [];
+		const steps = 240;
+		for (let i = 0; i <= steps; i++) {
+			const x = (svgW * i) / steps;
+			let y = svgH / 2;
+			const rel = (x - waveCenter) / (waveWidth / 2);
+			if (Math.abs(rel) < 1) {
+				const envelope = Math.cos(rel * Math.PI) * 0.5 + 0.5;
+				y += Math.sin(rel * freq * Math.PI) * amp * envelope;
+			}
+			points.push(`${x},${y}`);
+		}
+		return 'M' + points.join(' L');
+	}
 
 	useEffect(() => {
 		const start = performance.now();
@@ -55,11 +90,6 @@ export default function AnimatedLightWaveText({
 		0,
 		Math.min(1, (time - duration + fadeOutDuration) / fadeOutDuration)
 	);
-
-	// Declarar primero para poder usarlas en la lógica de la línea
-	const screenW = window.innerWidth;
-	const startX = 0;
-	const endX = screenW;
 
 	// Línea principal: crece desde la izquierda, luego el borde izquierdo se mueve hacia la derecha tras el delay
 	let lineLength = 1;
@@ -96,22 +126,49 @@ export default function AnimatedLightWaveText({
 				zIndex: 40,
 			}}
 		>
-			{lineLength > 0 && (
-				<div
+			{/* SVG wave line phase */}
+			{time >= lineGrowDuration && time < revealPhaseStart && (
+				<svg
+					width={svgW}
+					height={svgH}
 					style={{
 						position: 'absolute',
-						left: lineLeft,
-						top: spriteY,
-						width: (endX - startX) * lineLength,
-						height: 3,
-						background: 'linear-gradient(90deg, rgb(255,230,179) 0%, rgb(255,179,51) 100%)',
-						boxShadow: '0 0 8px 2px rgb(255,230,179), 0 0 12px 4px rgb(255,179,51)',
-						opacity: 0.5,
-						borderRadius: 2,
+						left: startX,
+						top: lineY - svgH / 2,
+						zIndex: 41,
 						filter: 'blur(0.7px)',
-						transition: 'width 0.2s, left 0.2s',
 					}}
-				/>
+				>
+					{[
+						{ amp: waveAmp, freq: waveFreq, color: 'rgba(255,230,179,0.85)', width: 3 },
+						{
+							amp: waveAmp * 0.6,
+							freq: waveFreq,
+							color: 'rgba(238, 106, 255, 0.5)',
+							width: 2,
+						},
+						{
+							amp: waveAmp * 0.35,
+							freq: waveFreq,
+							color: 'rgba(255, 185, 64, 0.55)',
+							width: 1.5,
+						},
+						{
+							amp: waveAmp * 0.26,
+							freq: waveFreq,
+							color: 'rgba(255, 116, 36, 0.55)',
+							width: 1.5,
+						},
+					].map((w, i) => (
+						<path
+							key={i}
+							d={getWavePath(w.amp, w.freq)}
+							stroke={w.color}
+							strokeWidth={w.width}
+							fill="none"
+						/>
+					))}
+				</svg>
 			)}
 			{/* Destello/wave animado */}
 			{waveProgress > 0 && waveProgress < 1 && (
