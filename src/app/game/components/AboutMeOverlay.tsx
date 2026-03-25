@@ -1,27 +1,60 @@
-import AnimatedLightWaveText, { getGridLineYs } from './AnimatedLightWaveText';
+// app/game/components/AboutMeOverlay.tsx
+'use client';
 
-const aboutMeTexts = [
-	"Hello! I'm Florencia :)",
-	'Full-Stack Developer',
-	'I love creating interactive experiences',
-	'Welcome to my portfolio!',
-];
+import { useEffect, useState } from 'react';
+import AnimatedLightWaveText from './AnimatedLightWaveText';
+import { useWormholeGrid } from '../hooks/useWormholeGrid';
+import HelloSVG from './Hello.svg';
 
-type Props = { spriteX: number };
+export default function AboutMeOverlay() {
+	const [screenH, setScreenH] = useState<number>(0);
 
-export default function AboutMeOverlay({ spriteX }: Props) {
-	const screenH = window.innerHeight;
-	const gridYs = getGridLineYs(screenH, 13); // 13 líneas, m de -6 a 6
-	// Elige los índices de m que quieras (por ejemplo, m = -4, -1, 2, 4)
-	const indices = [4, 5, 8, 4]; // m = -4, -1, 2, 4 (índice = m + 6)
+	useEffect(() => {
+		const update = () => setScreenH(window.innerHeight);
+		update();
+		window.addEventListener('resize', update);
+		return () => window.removeEventListener('resize', update);
+	}, []);
+
+	// ✅ SIEMPRE llamamos el hook (orden estable)
+	const safeH = screenH > 0 ? screenH : 1;
+	const { lines } = useWormholeGrid(safeH, 0.13, 13); // mismo spacing que shader
+
+	// ✅ Recién después decidimos si renderizar o no
+	if (screenH <= 0) return null;
+
+	// m = -6..6  → index = m + 6
+	const gridMs = [-4, -1, 2, 4];
+	const half = 6;
+
+	// (opcional) DEBUG: pintar la grilla
+	const DEBUG_GRID = false;
+
 	return (
 		<>
-			{aboutMeTexts.map((text, i) => (
+			{DEBUG_GRID && (
+				<div className="pointer-events-none absolute inset-0 z-50">
+					{lines.map((y, i) => (
+						<div
+							key={i}
+							style={{
+								position: 'absolute',
+								left: 0,
+								top: y,
+								width: '100%',
+								height: 1,
+								background: 'rgba(0,255,255,0.18)',
+							}}
+						/>
+					))}
+				</div>
+			)}
+
+			{gridMs.map((m, i) => (
 				<AnimatedLightWaveText
 					key={i}
-					spriteY={gridYs[indices[i]]}
-					spriteX={spriteX}
-					text={text}
+					gridY={lines[m + half]}
+					svg={<HelloSVG />}
 					duration={4000}
 					delay={i * 2000}
 				/>

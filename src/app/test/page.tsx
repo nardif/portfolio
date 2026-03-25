@@ -1,6 +1,6 @@
 'use client';
 
-import BackgroundShaderRed from '../game/components/BackgroundShaderRed';
+import BackgroundShaderRed from './BackgroundShaderRed';
 
 export default function TestPage() {
 	return (

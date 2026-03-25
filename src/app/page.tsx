@@ -5,11 +5,11 @@ import GlassNav from './game/components/GlassNav';
 import { useState, useEffect } from 'react';
 import FloatingTitle from './game/components/FloatingTitle';
 import BackgroundShaderStars from './game/components/BackgroundShaderStars';
-//import BackgroundShaderNeonTunnel from './game/components/BackgroundShaderNeonTunnel';
 import BackgroundShaderVapor from './game/components/BackgroundShaderVapor';
-import BackgroundShaderWater from './game/components/BackgroundShaderWater';
 import BackgroundShaderWormhole from './game/components/BackgroundShaderWormhole';
-import BackgroundShaderWormholeSimplified from './game/components/BackgroundShaderWormholeSimplified';
+import BackgroundShaderUnderwater from './game/components/BackgroundShaderUnderWater';
+import BackgroundShaderOceanFloor from './game/components/BackgroundShaderOceanFloor';
+import { useOceanFloorAnemone } from './game/hooks/useOceanFloorAnemone';
 
 const Canvas = dynamic(() => import('./game/components/Canvas'), { ssr: false });
 
@@ -20,11 +20,21 @@ export default function GamePage() {
 		vel: { x: number; y: number };
 	} | null>(null);
 
+	const safePos = playerData?.pos ?? { x: 0, y: 0 };
+	const safeVel = playerData?.vel ?? { x: 0, y: 0 };
+
 	const [wormholeReady, setWormholeReady] = useState(false);
 	useEffect(() => {
 		const timeout = setTimeout(() => setWormholeReady(true), 100);
 		return () => clearTimeout(timeout);
-	}, []);
+	}, []); //revisar si lo uso
+
+	const { anemoneOpen, isHovering } = useOceanFloorAnemone({
+		enabled: currentScreen === 'screen-9-contact',
+		center: { x: 0.5, y: 0.42 },
+		radius: 0.12,
+		durationMs: 700,
+	});
 
 	return (
 		<div className="relative h-screen w-screen overflow-hidden bg-black text-white">
@@ -61,7 +71,25 @@ export default function GamePage() {
 			{(currentScreen === 'screen-6-skills-1' || currentScreen === 'screen-7-skills-2') && (
 				<BackgroundShaderVapor warp={1.08} speed={0.75} contrast={1.05} />
 			)}
-			{currentScreen === 'screen-8-projects' && <BackgroundShaderWater />}
+			{currentScreen === 'screen-8-projects' && (
+				<BackgroundShaderUnderwater
+					playerPos={safePos}
+					playerVel={safeVel}
+					depth={0.75}
+					intensity={1.2}
+					dprMax={2}
+				/>
+			)}
+			{currentScreen === 'screen-9-contact' && (
+				<BackgroundShaderOceanFloor
+					playerPos={safePos}
+					playerVel={safeVel}
+					depth={0.75}
+					intensity={1.15}
+					anemoneOpen={anemoneOpen}
+					anemoneHover={isHovering ? 1 : 0}
+				/>
+			)}
 			<Canvas onScreenChange={setCurrentScreen} onPlayerDataChange={setPlayerData} />
 		</div>
 	);

@@ -16,13 +16,12 @@ type CanvasProps = {
 export default function Canvas({ onScreenChange, onPlayerDataChange }: CanvasProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const managerRef = useRef<GameManager | null>(null);
-	const [dimensions, setDimensions] = useState({
-		width: 800,
-		height: 600,
-	});
-	// Overlay de burbujas
+
+	const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+
 	const [labels, setLabels] = useState<Record<string, { x: number; y: number; text: string }>>({});
 	const [currentScreen, setCurrentScreen] = useState<string | null>(null);
+
 	const isAboutMeScreen = useCallback(() => {
 		return [
 			'screen-2-about-me-1',
@@ -34,15 +33,10 @@ export default function Canvas({ onScreenChange, onPlayerDataChange }: CanvasPro
 
 	useEffect(() => {
 		const updateSize = () => {
-			setDimensions({
-				width: window.innerWidth,
-				height: window.innerHeight,
-			});
+			setDimensions({ width: window.innerWidth, height: window.innerHeight });
 		};
-
 		updateSize();
 		window.addEventListener('resize', updateSize);
-
 		return () => window.removeEventListener('resize', updateSize);
 	}, []);
 
@@ -68,9 +62,11 @@ export default function Canvas({ onScreenChange, onPlayerDataChange }: CanvasPro
 				return copy;
 			});
 		};
+
 		window.addEventListener('bubble:show', onShow as EventListener);
 		window.addEventListener('bubble:move', onMove as EventListener);
 		window.addEventListener('bubble:hide', onHide as EventListener);
+
 		return () => {
 			window.removeEventListener('bubble:show', onShow as EventListener);
 			window.removeEventListener('bubble:move', onMove as EventListener);
@@ -86,27 +82,40 @@ export default function Canvas({ onScreenChange, onPlayerDataChange }: CanvasPro
 			setCurrentScreen(id);
 			if (onScreenChange) onScreenChange(id);
 		});
+
 		managerRef.current = manager;
 		manager.start();
 
 		if (onPlayerDataChange) {
 			const loop = () => {
 				const m = managerRef.current;
-				if (m) {
-					const player = m['player'];
-					const scrollY = m['scrollY'];
+				const c = canvasRef.current;
+
+				if (m && c) {
+					const player = (m as any)['player'];
+					const scrollY = (m as any)['scrollY'];
+
+					// ✅ Convertimos a VIEWPORT (CSS px)
+					// player.x/y están en "canvas/world space" (relativos al canvas)
+					// rect.left/top los convierte a viewport
+					const rect = c.getBoundingClientRect();
+
 					const pos = {
-						x: player.x,
-						y: player.y - scrollY,
+						x: rect.left + player.x,
+						y: rect.top + (player.y - scrollY),
 					};
+
 					const vel = {
 						x: player.vx,
 						y: player.vy,
 					};
+
 					onPlayerDataChange({ pos, vel });
 				}
+
 				requestAnimationFrame(loop);
 			};
+
 			requestAnimationFrame(loop);
 		}
 
@@ -116,13 +125,23 @@ export default function Canvas({ onScreenChange, onPlayerDataChange }: CanvasPro
 			if (!detail?.screenId) return;
 			managerRef.current?.goToScreen(detail.screenId, { smooth: true });
 		};
+
 		window.addEventListener('navigate-screen', onNavigate as EventListener);
 
 		return () => {
 			window.removeEventListener('navigate-screen', onNavigate as EventListener);
 			manager.dispose();
 		};
-	}, [dimensions, onScreenChange]);
+	}, [dimensions, onScreenChange, onPlayerDataChange]);
+
+	// ✅ spriteX para overlays en VIEWPORT (CSS px)
+	const spriteXViewport = (() => {
+		const c = canvasRef.current;
+		const p = managerRef.current?.getPlayer?.();
+		if (!c || !p) return window.innerWidth / 2;
+		const rect = c.getBoundingClientRect();
+		return rect.left + p.x;
+	})();
 
 	return (
 		<div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
@@ -140,17 +159,17 @@ export default function Canvas({ onScreenChange, onPlayerDataChange }: CanvasPro
 					zIndex: 10,
 				}}
 			/>
+
 			{/* Overlay de burbujas */}
 			<div className="pointer-events-none absolute inset-0 z-20">
 				{Object.entries(labels).map(([id, b]) => (
 					<BubbleLabel key={id} x={b.x} y={b.y} text={b.text} fontFamily="'Arial', cursive" />
 				))}
-				{/* Overlay About Me: solo en screens 2, 3 y 4 */}
+
+				{/* Overlay About Me */}
 				{['screen-2-about-me-1', 'screen-3-about-me-2', 'screen-4-about-me-3'].includes(
 					currentScreen ?? ''
-				) && (
-					<AboutMeOverlay spriteX={managerRef.current?.getPlayer()?.x ?? window.innerWidth / 2} />
-				)}
+				) && <AboutMeOverlay />}
 			</div>
 		</div>
 	);

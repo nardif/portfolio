@@ -154,6 +154,18 @@ export class GameManager {
 				200,
 				20
 			),
+			new Platform(
+				placeCentered(this.canvas, 200, screenHeight * 8 + 200, 200),
+				screenHeight * 8 + 400,
+				200,
+				20
+			),
+			new Platform(
+				placeCentered(this.canvas, 200, screenHeight * 9 + 200, 200),
+				screenHeight * 10 - 20,
+				300,
+				20
+			),
 		];
 
 		// EJEMPLO: Solo burbujas en plataformas específicas y con texto personalizado
